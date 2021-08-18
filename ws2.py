@@ -2,13 +2,9 @@ import asyncio
 import logging
 import websockets
 from websockets import WebSocketServerProtocol
-import time
-import threading
 from jsonrpcserver import method, Success, Result, async_dispatch
 
-
 logging.basicConfig(level=logging.INFO)
-
 
 class Server:
 
@@ -17,6 +13,7 @@ class Server:
     async def register(self, ws: WebSocketServerProtocol) -> None:
         self.clients.add(ws)
         logging.info("connects")
+        print(self.clients)
 
     async def unregister(self, ws: WebSocketServerProtocol) -> None:
         self.clients.remove(ws)
@@ -27,7 +24,7 @@ class Server:
             logging.info("send")
             await asyncio.wait([client.send(message) for client in self.clients])
 
-    async def ws_handler(self, ws: WebSocketServerProtocol, url: str) -> None:
+    async def ws_handler(self, ws: WebSocketServerProtocol) -> None:
         await self.register(ws)
         try:
             await self.distribute(ws)
@@ -36,7 +33,7 @@ class Server:
 
     async def distribute(self, ws: WebSocketServerProtocol) -> None:
         for message in ws:
-            self.send_to_clients(message)
+            asyncio.create_task(self.send_to_clients(message))
             logging.info("send")
 
 
@@ -50,7 +47,7 @@ async def sendEcho() -> Result:
 
 @method
 async def checkAndSend() -> Result:
-    await server.ws_handler('localhost',5000)
+    await server.ws_handler('localhost')
     return Success("Hi there")  
 
 
